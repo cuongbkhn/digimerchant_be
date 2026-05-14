@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DigiMerchantBE")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+dc3bb31d7a7468724ff111d4688b4a48ae22b882")]
 [assembly: System.Reflection.AssemblyProductAttribute("DigiMerchantBE")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DigiMerchantBE")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
