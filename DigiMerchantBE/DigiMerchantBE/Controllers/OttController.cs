@@ -1,10 +1,10 @@
 using DigiMerchantBE.Common;
-using DigiMerchantBE.DTOs.Crypto;
 using DigiMerchantBE.DTOs.Ott;
 using DigiMerchantBE.Security;
 using DigiMerchantBE.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace DigiMerchantBE.Controllers;
 
@@ -23,10 +23,10 @@ public class OttController : ControllerBase
     [HttpPost("send-single")]
     [RequireFunction("OTT_SEND_SINGLE")]
     public async Task<ActionResult<ApiResponse<object>>> SendSingle(
-        [FromBody] EncryptedRequestDto encrypted,
+        [FromBody] JsonElement requestBody,
         CancellationToken cancellationToken)
     {
-        var request = await _cryptoEnvelopeService.DecryptAsync<SendOttSingleRequest>(encrypted, HttpContext, cancellationToken);
+        var request = await _cryptoEnvelopeService.ResolvePayloadAsync<SendOttSingleRequest>(requestBody, HttpContext, cancellationToken);
 
         // TODO: call OTT service with decrypted request.
         return Ok(new ApiResponse<object>
