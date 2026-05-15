@@ -27,6 +27,7 @@ var fileLoggingOptions = fileLoggingSection.Get<FileLoggingOptions>() ?? new Fil
 builder.Services.Configure<ApiLoggingOptions>(builder.Configuration.GetSection("ApiLogging"));
 builder.Services.Configure<RefreshTokenCookieOptions>(builder.Configuration.GetSection("RefreshTokenCookie"));
 builder.Services.Configure<CryptoOptions>(builder.Configuration.GetSection("Crypto"));
+builder.Services.Configure<RuntimeOptions>(builder.Configuration.GetSection("Runtime"));
 var oracleConnectionString = builder.Configuration.GetConnectionString("OracleDb")
     ?? throw new InvalidOperationException("Missing ConnectionStrings:OracleDb.");
 

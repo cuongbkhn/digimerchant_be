@@ -25,20 +25,51 @@ public class CryptoEnvelopeService : ICryptoEnvelopeService
     };
 
     private readonly IOptionsMonitor<CryptoOptions> _cryptoOptions;
+    private readonly IOptionsMonitor<RuntimeOptions> _runtimeOptions;
     private readonly IMemoryCache _memoryCache;
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<CryptoEnvelopeService> _logger;
 
     public CryptoEnvelopeService(
         IOptionsMonitor<CryptoOptions> cryptoOptions,
+        IOptionsMonitor<RuntimeOptions> runtimeOptions,
         IMemoryCache memoryCache,
         IWebHostEnvironment environment,
         ILogger<CryptoEnvelopeService> logger)
     {
         _cryptoOptions = cryptoOptions;
+        _runtimeOptions = runtimeOptions;
         _memoryCache = memoryCache;
         _environment = environment;
         _logger = logger;
+    }
+
+    public async Task<T> ResolvePayloadAsync<T>(
+        JsonElement requestBody,
+        HttpContext httpContext,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var cryptoOptions = _cryptoOptions.CurrentValue;
+
+        if (CanBypassDecrypt(cryptoOptions))
+        {
+            var rawPayload = JsonSerializer.Deserialize<T>(requestBody.GetRawText(), JsonOptions);
+            if (rawPayload is null)
+            {
+                throw new ApiException(StatusCodes.Status400BadRequest, "CR017", "Payload raw không hợp lệ");
+            }
+
+            return rawPayload;
+        }
+
+        var encryptedRequest = JsonSerializer.Deserialize<EncryptedRequestDto>(requestBody.GetRawText(), JsonOptions);
+        if (encryptedRequest is null)
+        {
+            throw new ApiException(StatusCodes.Status400BadRequest, "CR018", "Encrypted envelope không hợp lệ");
+        }
+
+        return await DecryptAsync<T>(encryptedRequest, httpContext, cancellationToken);
     }
 
     public async Task<T> DecryptAsync<T>(
@@ -202,6 +233,22 @@ public class CryptoEnvelopeService : ICryptoEnvelopeService
         return Path.IsPathRooted(configuredPath)
             ? configuredPath
             : Path.Combine(_environment.ContentRootPath, configuredPath);
+    }
+
+    private bool CanBypassDecrypt(CryptoOptions cryptoOptions)
+    {
+        var bypassOptions = cryptoOptions.Bypass ?? new CryptoBypassOptions();
+        if (!bypassOptions.EnableRawPayloadBypass)
+        {
+            return false;
+        }
+
+        var configuredEnvironment = _runtimeOptions.CurrentValue.EnvironmentName;
+        var environmentName = string.IsNullOrWhiteSpace(configuredEnvironment)
+            ? _environment.EnvironmentName
+            : configuredEnvironment;
+
+        return string.Equals(environmentName, bypassOptions.AllowedEnvironment, StringComparison.OrdinalIgnoreCase);
     }
 
     private static byte[] ParseMetadataBytes(byte[] rsaDecryptedBytes)
