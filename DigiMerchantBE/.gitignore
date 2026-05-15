@@ -1,0 +1,5 @@
+# Security-sensitive material
+DigiMerchantBE/keys/private.pem
+
+# Temporary local tooling
+DigiMerchantBE/.tmp-keygen/
