@@ -1,11 +1,10 @@
 using DigiMerchantBE.Common;
 
-namespace DigiMerchantBE.DTOs.Auth;
+namespace DigiMerchantBE.DTOs.Roles;
 
-public class RefreshTokenResponse : IApiResult
+public class RoleListResponse : IApiResult
 {
     public string ErrorCode { get; set; } = ApiErrorCodes.Success.Code;
     public string ErrorDescription { get; set; } = ApiErrorCodes.Success.Description;
-    public string AccessToken { get; set; } = string.Empty;
-    public int ExpiresIn { get; set; }
+    public RoleOptionDto[] Roles { get; set; } = Array.Empty<RoleOptionDto>();
 }

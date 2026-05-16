@@ -7,6 +7,7 @@ public class DmRole
     public string RoleName { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string Status { get; set; } = string.Empty;
+    public int RoleLevel { get; set; }
     public string? CreatedBy { get; set; }
     public DateTime CreateTime { get; set; }
     public string? UpdatedBy { get; set; }

@@ -57,7 +57,7 @@ public class CryptoEnvelopeService : ICryptoEnvelopeService
             var rawPayload = JsonSerializer.Deserialize<T>(requestBody.GetRawText(), JsonOptions);
             if (rawPayload is null)
             {
-                throw new ApiException(StatusCodes.Status400BadRequest, "CR017", "Payload raw không hợp lệ");
+                throw new ApiException(CryptoErrorCodes.RawPayloadInvalid);
             }
 
             return rawPayload;
@@ -66,7 +66,7 @@ public class CryptoEnvelopeService : ICryptoEnvelopeService
         var encryptedRequest = JsonSerializer.Deserialize<EncryptedRequestDto>(requestBody.GetRawText(), JsonOptions);
         if (encryptedRequest is null)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "CR018", "Encrypted envelope không hợp lệ");
+            throw new ApiException(CryptoErrorCodes.EncryptedEnvelopeInvalid);
         }
 
         return await DecryptAsync<T>(encryptedRequest, httpContext, cancellationToken);
@@ -111,14 +111,14 @@ public class CryptoEnvelopeService : ICryptoEnvelopeService
         catch (CryptographicException ex)
         {
             _logger.LogWarning(ex, "Failed to decrypt crypto envelope for path {Path}", httpContext.Request.Path);
-            throw new ApiException(StatusCodes.Status400BadRequest, "CR006", "Payload mã hóa không hợp lệ");
+            throw new ApiException(CryptoErrorCodes.DecryptFailed);
         }
 
         var plaintextJson = Encoding.UTF8.GetString(plaintextBytes);
         var payload = JsonSerializer.Deserialize<T>(plaintextJson, JsonOptions);
         if (payload is null)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "CR007", "Không parse được dữ liệu payload");
+            throw new ApiException(CryptoErrorCodes.PayloadParseFailed);
         }
 
         return payload;
@@ -162,17 +162,17 @@ public class CryptoEnvelopeService : ICryptoEnvelopeService
     {
         if (request is null)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "CR001", "Payload mã hóa không hợp lệ");
+            throw new ApiException(CryptoErrorCodes.EncryptedPayloadInvalid);
         }
 
         if (string.IsNullOrWhiteSpace(request.K) || string.IsNullOrWhiteSpace(request.D))
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "CR002", "Thiếu dữ liệu mã hóa");
+            throw new ApiException(CryptoErrorCodes.EncryptedDataMissing);
         }
 
         if (!string.Equals(request.Alg, SupportedAlg, StringComparison.OrdinalIgnoreCase))
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "CR003", "Thuật toán mã hóa không được hỗ trợ");
+            throw new ApiException(CryptoErrorCodes.AlgorithmNotSupported);
         }
     }
 
@@ -180,7 +180,7 @@ public class CryptoEnvelopeService : ICryptoEnvelopeService
     {
         if (request.Ts <= 0)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "CR004", "Timestamp không hợp lệ");
+            throw new ApiException(CryptoErrorCodes.TimestampInvalid);
         }
 
         var replayWindowSeconds = Math.Max(1, options.ReplayWindowSeconds);
@@ -189,18 +189,18 @@ public class CryptoEnvelopeService : ICryptoEnvelopeService
         var drift = Math.Abs((now - sentAt).TotalSeconds);
         if (drift > replayWindowSeconds)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "CR005", "Timestamp đã hết hạn");
+            throw new ApiException(CryptoErrorCodes.TimestampExpired);
         }
 
         if (string.IsNullOrWhiteSpace(request.Nonce))
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "CR008", "Nonce không hợp lệ");
+            throw new ApiException(CryptoErrorCodes.NonceInvalid);
         }
 
         var nonceCacheKey = $"crypto_nonce:{request.Kid}:{request.Nonce}";
         if (_memoryCache.TryGetValue(nonceCacheKey, out _))
         {
-            throw new ApiException(StatusCodes.Status409Conflict, "CR009", "Nonce đã được sử dụng");
+            throw new ApiException(CryptoErrorCodes.NonceReused);
         }
 
         _memoryCache.Set(nonceCacheKey, true, TimeSpan.FromSeconds(replayWindowSeconds));
@@ -211,18 +211,18 @@ public class CryptoEnvelopeService : ICryptoEnvelopeService
         var key = options.RsaKeys.FirstOrDefault(x => string.Equals(x.Kid, kid, StringComparison.Ordinal));
         if (key is null)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "CR010", "Không tìm thấy key tương ứng với kid");
+            throw new ApiException(CryptoErrorCodes.KidNotFound);
         }
 
         if (string.IsNullOrWhiteSpace(key.PrivateKeyPemPath))
         {
-            throw new ApiException(StatusCodes.Status500InternalServerError, "CR011", "Private key path chưa được cấu hình");
+            throw new ApiException(CryptoErrorCodes.PrivateKeyPathMissing);
         }
 
         var privateKeyPath = ResolvePath(key.PrivateKeyPemPath);
         if (!File.Exists(privateKeyPath))
         {
-            throw new ApiException(StatusCodes.Status500InternalServerError, "CR012", "Không tìm thấy private key");
+            throw new ApiException(CryptoErrorCodes.PrivateKeyNotFound);
         }
 
         return key;
@@ -261,13 +261,13 @@ public class CryptoEnvelopeService : ICryptoEnvelopeService
         var asString = Encoding.UTF8.GetString(rsaDecryptedBytes).Trim();
         if (string.IsNullOrWhiteSpace(asString))
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "CR013", "Metadata mã hóa không hợp lệ");
+            throw new ApiException(CryptoErrorCodes.MetadataInvalid);
         }
 
         var decoded = DecodeBase64Strict(asString, "keys64");
         if (decoded.Length != MetadataLength)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "CR014", "Metadata mã hóa không đúng độ dài");
+            throw new ApiException(CryptoErrorCodes.MetadataLengthInvalid);
         }
 
         return decoded;
@@ -281,7 +281,7 @@ public class CryptoEnvelopeService : ICryptoEnvelopeService
         }
         catch (FormatException)
         {
-            throw new ApiException(StatusCodes.Status400BadRequest, "CR015", $"{fieldName} không phải Base64 hợp lệ");
+            throw new ApiException(CryptoErrorCodes.InvalidBase64Field, CryptoErrorCodes.FormatInvalidBase64Field(fieldName));
         }
     }
 
@@ -296,7 +296,7 @@ public class CryptoEnvelopeService : ICryptoEnvelopeService
 
         if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(jti))
         {
-            throw new ApiException(StatusCodes.Status401Unauthorized, "CR016", "Token xác thực không hợp lệ");
+            throw new ApiException(CryptoErrorCodes.AuthTokenInvalid);
         }
 
         var aadString = string.Join('\n',

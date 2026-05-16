@@ -31,8 +31,8 @@ public class OttController : ControllerBase
         // TODO: call OTT service with decrypted request.
         return Ok(new ApiResponse<object>
         {
-            ErrorCode = "00",
-            Message = "Gửi OTT thành công",
+            ErrorCode = ApiErrorCodes.OttSendSuccess.Code,
+            ErrorDescription = ApiErrorCodes.OttSendSuccess.Description,
             Data = new
             {
                 request.Receiver

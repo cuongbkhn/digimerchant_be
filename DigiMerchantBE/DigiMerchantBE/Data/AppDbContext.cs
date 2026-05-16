@@ -57,6 +57,7 @@ public class AppDbContext : DbContext
             entity.Property(x => x.RoleName).HasColumnName("ROLE_NAME").HasMaxLength(255).IsRequired();
             entity.Property(x => x.Description).HasColumnName("DESCRIPTION").HasMaxLength(500);
             entity.Property(x => x.Status).HasColumnName("STATUS").HasMaxLength(20).IsRequired();
+            entity.Property(x => x.RoleLevel).HasColumnName("ROLE_LEVEL").IsRequired();
             entity.Property(x => x.CreatedBy).HasColumnName("CREATED_BY").HasMaxLength(100);
             entity.Property(x => x.CreateTime).HasColumnName("CREATE_TIME").IsRequired();
             entity.Property(x => x.UpdatedBy).HasColumnName("UPDATED_BY").HasMaxLength(100);

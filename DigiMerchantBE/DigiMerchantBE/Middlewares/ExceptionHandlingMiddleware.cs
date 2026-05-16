@@ -29,7 +29,7 @@ public sealed class ExceptionHandlingMiddleware
             var response = new ApiResponse<object?>
             {
                 ErrorCode = ex.ErrorCode,
-                Message = ex.Message,
+                ErrorDescription = ex.ErrorDescription,
                 Data = null
             };
 
@@ -44,8 +44,8 @@ public sealed class ExceptionHandlingMiddleware
 
             var response = new ApiResponse<object?>
             {
-                ErrorCode = "99",
-                Message = "Có lỗi hệ thống xảy ra",
+                ErrorCode = ApiErrorCodes.SystemError.Code,
+                ErrorDescription = ApiErrorCodes.SystemError.Description,
                 Data = null
             };
 

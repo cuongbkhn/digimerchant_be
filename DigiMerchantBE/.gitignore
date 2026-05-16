@@ -1,5 +1,6 @@
-# Security-sensitive material
-DigiMerchantBE/keys/private.pem
+# See repo root .gitignore (DM_BE/.gitignore) for build/IDE rules.
+# Project-specific overrides:
 
-# Temporary local tooling
-DigiMerchantBE/.tmp-keygen/
+keys/private.pem
+.tmp-keygen/
+logs/

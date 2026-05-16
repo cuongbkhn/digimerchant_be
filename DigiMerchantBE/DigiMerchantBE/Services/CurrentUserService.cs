@@ -27,4 +27,6 @@ public class CurrentUserService : ICurrentUserService
     }
 
     public string? UserName => Principal?.FindFirstValue("username");
+
+    public string? RoleCode => Principal?.FindFirstValue("roleCode");
 }

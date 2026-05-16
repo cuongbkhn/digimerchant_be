@@ -13,13 +13,12 @@ namespace DigiMerchantBE.Services;
 
 public class AuthService : IAuthService
 {
-    private const string InvalidCredentialMessage = "Tên đăng nhập hoặc mật khẩu không đúng";
-
     private readonly AppDbContext _dbContext;
     private readonly ITokenService _tokenService;
     private readonly IPasswordHasher<DmUser> _passwordHasher;
     private readonly IUserHistoryService _userHistoryService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IRoleService _roleService;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly JwtOptions _jwtOptions;
     private readonly RefreshTokenCookieOptions _refreshTokenCookieOptions;
@@ -30,6 +29,7 @@ public class AuthService : IAuthService
         IPasswordHasher<DmUser> passwordHasher,
         IUserHistoryService userHistoryService,
         ICurrentUserService currentUserService,
+        IRoleService roleService,
         IHttpContextAccessor httpContextAccessor,
         IOptions<JwtOptions> jwtOptions,
         IOptions<RefreshTokenCookieOptions> refreshTokenCookieOptions)
@@ -39,6 +39,7 @@ public class AuthService : IAuthService
         _passwordHasher = passwordHasher;
         _userHistoryService = userHistoryService;
         _currentUserService = currentUserService;
+        _roleService = roleService;
         _httpContextAccessor = httpContextAccessor;
         _jwtOptions = jwtOptions.Value;
         _refreshTokenCookieOptions = refreshTokenCookieOptions.Value;
@@ -54,17 +55,17 @@ public class AuthService : IAuthService
 
         if (user is null)
         {
-            throw new ApiException(StatusCodes.Status401Unauthorized, "01", InvalidCredentialMessage);
+            throw new ApiException(ApiErrorCodes.InvalidCredentials);
         }
 
         if (user.Status == 0)
         {
-            throw new ApiException(StatusCodes.Status403Forbidden, "02", "Tài khoản đã bị vô hiệu hóa");
+            throw new ApiException(ApiErrorCodes.AccountInactive);
         }
 
         if (user.Status == 2 || (user.LockoutEndAt.HasValue && user.LockoutEndAt > DateTime.UtcNow))
         {
-            throw new ApiException(StatusCodes.Status423Locked, "03", "Tài khoản đang bị khóa");
+            throw new ApiException(ApiErrorCodes.AccountLocked);
         }
 
         var verifyResult = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
@@ -80,12 +81,12 @@ public class AuthService : IAuthService
 
             await _dbContext.SaveChangesAsync();
             await _userHistoryService.WriteAsync(user.UserId, user.UserName, "LOGIN_FAILED", "Đăng nhập thất bại");
-            throw new ApiException(StatusCodes.Status401Unauthorized, "01", InvalidCredentialMessage);
+            throw new ApiException(ApiErrorCodes.InvalidCredentials);
         }
 
         if (user.Role is null || !string.Equals(user.Role.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ApiException(StatusCodes.Status403Forbidden, "04", "Tài khoản chưa được cấp quyền hợp lệ");
+            throw new ApiException(ApiErrorCodes.InvalidRoleAssignment);
         }
 
         var functions = await GetRoleFunctionsAsync(user.RoleId);
@@ -118,11 +119,10 @@ public class AuthService : IAuthService
 
         return new LoginResponse
         {
-            ErrorCode = "00",
             AccessToken = accessTokenResult.AccessToken,
             ExpiresIn = _jwtOptions.AccessTokenMinutes * 60,
             User = BuildCurrentUserResponse(user, functions)
-        };
+        }.WithSuccess();
     }
 
     public async Task<RefreshTokenResponse> RefreshTokenAsync()
@@ -130,7 +130,7 @@ public class AuthService : IAuthService
         var rawRefreshToken = GetRefreshTokenFromCookie();
         if (string.IsNullOrWhiteSpace(rawRefreshToken))
         {
-            throw new ApiException(StatusCodes.Status401Unauthorized, "05", "Refresh token không hợp lệ hoặc đã hết hạn");
+            throw new ApiException(ApiErrorCodes.RefreshTokenInvalid);
         }
 
         var tokenHash = _tokenService.HashToken(rawRefreshToken.Trim());
@@ -144,18 +144,18 @@ public class AuthService : IAuthService
         if (refreshToken is null || refreshToken.RevokedAt.HasValue || refreshToken.ExpiresAt <= now)
         {
             ClearRefreshTokenCookie();
-            throw new ApiException(StatusCodes.Status401Unauthorized, "05", "Refresh token không hợp lệ hoặc đã hết hạn");
+            throw new ApiException(ApiErrorCodes.RefreshTokenInvalid);
         }
 
         var user = refreshToken.User;
         if (user is null || user.Status != 1 || (user.LockoutEndAt.HasValue && user.LockoutEndAt > now))
         {
-            throw new ApiException(StatusCodes.Status401Unauthorized, "06", "Người dùng không còn hoạt động");
+            throw new ApiException(ApiErrorCodes.UserNotActive);
         }
 
         if (user.Role is null || !string.Equals(user.Role.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ApiException(StatusCodes.Status403Forbidden, "04", "Tài khoản chưa được cấp quyền hợp lệ");
+            throw new ApiException(ApiErrorCodes.InvalidRoleAssignment);
         }
 
         var functions = await GetRoleFunctionsAsync(user.RoleId);
@@ -183,10 +183,9 @@ public class AuthService : IAuthService
 
         return new RefreshTokenResponse
         {
-            ErrorCode = "00",
             AccessToken = accessTokenResult.AccessToken,
             ExpiresIn = _jwtOptions.AccessTokenMinutes * 60
-        };
+        }.WithSuccess();
     }
 
     public async Task LogoutAsync()
@@ -218,7 +217,7 @@ public class AuthService : IAuthService
         var currentUserId = _currentUserService.UserId;
         if (!currentUserId.HasValue)
         {
-            throw new ApiException(StatusCodes.Status401Unauthorized, "07", "Chưa xác thực người dùng");
+            throw new ApiException(ApiErrorCodes.Unauthorized);
         }
 
         var user = await _dbContext.Users
@@ -227,7 +226,7 @@ public class AuthService : IAuthService
 
         if (user is null || user.Status != 1 || user.Role is null)
         {
-            throw new ApiException(StatusCodes.Status401Unauthorized, "08", "Không tìm thấy người dùng hiện tại");
+            throw new ApiException(ApiErrorCodes.CurrentUserNotFound);
         }
 
         var functions = await GetRoleFunctionsAsync(user.RoleId);
@@ -236,12 +235,17 @@ public class AuthService : IAuthService
 
     public async Task<ResetPasswordResponse> ResetPasswordAsync(ResetPasswordRequest request)
     {
+        var actorRole = await _roleService.GetActorRoleAsync();
         var normalizedUsername = request.Username.Trim().ToUpperInvariant();
-        var user = await _dbContext.Users.FirstOrDefaultAsync(x => x.UserName.ToUpper() == normalizedUsername);
+        var user = await _dbContext.Users
+            .Include(x => x.Role)
+            .FirstOrDefaultAsync(x => x.UserName.ToUpper() == normalizedUsername);
         if (user is null)
         {
-            throw new ApiException(StatusCodes.Status404NotFound, "10", "Không tìm thấy người dùng cần reset mật khẩu");
+            throw new ApiException(ApiErrorCodes.ResetPasswordUserNotFound);
         }
+
+        await _roleService.EnsureCanResetPasswordAsync(actorRole, user);
 
         var rawPassword = GenerateTemporaryPassword(12);
         user.PasswordHash = _passwordHasher.HashPassword(user, rawPassword);
@@ -261,10 +265,9 @@ public class AuthService : IAuthService
 
         return new ResetPasswordResponse
         {
-            ErrorCode = "00",
             Username = user.UserName,
             RawPassword = rawPassword
-        };
+        }.WithSuccess();
     }
 
     private async Task<IReadOnlyCollection<DmFunction>> GetRoleFunctionsAsync(long roleId)
@@ -314,7 +317,7 @@ public class AuthService : IAuthService
     private void SetRefreshTokenCookie(string refreshToken, DateTime expiresAtUtc)
     {
         var httpContext = _httpContextAccessor.HttpContext
-            ?? throw new ApiException(StatusCodes.Status500InternalServerError, "99", "Không thể thiết lập cookie");
+            ?? throw new ApiException(ApiErrorCodes.CookieSetupFailed);
 
         var cookieName = string.IsNullOrWhiteSpace(_refreshTokenCookieOptions.Name)
             ? "refresh_token"

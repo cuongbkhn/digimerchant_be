@@ -1,6 +1,40 @@
 @DigiMerchantBE_HostAddress = http://localhost:5141
 
-GET {{DigiMerchantBE_HostAddress}}/weatherforecast/
-Accept: application/json
+### Login (seed user: admin / Admin@123)
+POST {{DigiMerchantBE_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "Admin@123"
+}
+
+###
+
+### Current user (paste accessToken from login)
+GET {{DigiMerchantBE_HostAddress}}/api/auth/me
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Roles for register dropdown (no SUPER_ADMIN, from DB)
+GET {{DigiMerchantBE_HostAddress}}/api/roles
+Authorization: Bearer {{accessToken}}
+
+###
+
+### Register user (requires USER_MANAGEMENT)
+POST {{DigiMerchantBE_HostAddress}}/api/users/register
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "userName": "operator01",
+  "password": "Operator@123",
+  "fullName": "Operator One",
+  "email": "operator01@example.com",
+  "phone": "0901234567",
+  "roleCode": "OPERATOR"
+}
 
 ###

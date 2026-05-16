@@ -1,12 +1,37 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "D:\\Code\\Project\\Digimerchant\\BE\\DigiMerchantBE\\",
-  "Documents": [],
+  "WorkspaceRootPath": "D:\\Win\\Code\\Project\\DM_BE\\DigiMerchantBE\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{1D3E6DBB-CA11-4EF4-BF91-502EBE7390B5}|DigiMerchantBE\\DigiMerchantBE.csproj|d:\\win\\code\\project\\dm_be\\digimerchantbe\\digimerchantbe\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{1D3E6DBB-CA11-4EF4-BF91-502EBE7390B5}|DigiMerchantBE\\DigiMerchantBE.csproj|solutionrelative:digimerchantbe\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
       "VerticalTabListWidth": 256,
-      "DocumentGroups": []
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "D:\\Win\\Code\\Project\\DM_BE\\DigiMerchantBE\\DigiMerchantBE\\appsettings.json",
+              "RelativeDocumentMoniker": "DigiMerchantBE\\appsettings.json",
+              "ToolTip": "D:\\Win\\Code\\Project\\DM_BE\\DigiMerchantBE\\DigiMerchantBE\\appsettings.json",
+              "RelativeToolTip": "DigiMerchantBE\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-05-16T06:00:38.459Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
     }
   ]
 }

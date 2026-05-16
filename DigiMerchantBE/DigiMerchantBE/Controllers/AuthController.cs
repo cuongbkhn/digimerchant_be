@@ -42,8 +42,8 @@ public class AuthController : ControllerBase
 
         return Ok(new ApiResponse<object?>
         {
-            ErrorCode = "00",
-            Message = "Đăng xuất thành công",
+            ErrorCode = ApiErrorCodes.LogoutSuccess.Code,
+            ErrorDescription = ApiErrorCodes.LogoutSuccess.Description,
             Data = null
         });
     }

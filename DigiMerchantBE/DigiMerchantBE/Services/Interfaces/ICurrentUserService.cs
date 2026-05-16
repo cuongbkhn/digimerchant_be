@@ -7,4 +7,5 @@ public interface ICurrentUserService
     ClaimsPrincipal? Principal { get; }
     long? UserId { get; }
     string? UserName { get; }
+    string? RoleCode { get; }
 }
