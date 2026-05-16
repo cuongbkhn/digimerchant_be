@@ -95,8 +95,9 @@ Response API dùng cặp field: **`errorCode`**, **`errorDescription`** (thay ch
 
 ## 4. Database
 
-- Script gốc: `DM_BACKOFFICE_AUTH_RBAC_V2_ORACLE.sql` (có `ROLE_LEVEL`).
-- Nếu DB cũ chưa có cột: chạy `DM_BACKOFFICE_ALTER_ROLE_LEVEL.sql`.
+- Script gốc: `sql/DM_BACKOFFICE_AUTH_RBAC_V2_ORACLE.sql` (có `ROLE_LEVEL`).
+- User đầu tiên: `sql/DM_BACKOFFICE_SEED_SUPER_ADMIN_USER.sql`.
+- Nếu DB cũ chưa có cột `ROLE_LEVEL`: chạy `sql/DM_BACKOFFICE_ALTER_ROLE_LEVEL.sql`.
 
 Role mới thêm vào `DMBO_ROLE` cần set `ROLE_LEVEL` phù hợp để API phân quyền tự áp dụng, không cần sửa code.
 

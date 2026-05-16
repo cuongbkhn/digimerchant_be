@@ -15,6 +15,8 @@ public class AppDbContext : DbContext
     public DbSet<DmRoleFunc> RoleFunctions => Set<DmRoleFunc>();
     public DbSet<DmRefreshToken> RefreshTokens => Set<DmRefreshToken>();
     public DbSet<DmUserHistory> UserHistories => Set<DmUserHistory>();
+    public DbSet<DmIconConfig> IconConfigs => Set<DmIconConfig>();
+    public DbSet<DmBannerConfig> BannerConfigs => Set<DmBannerConfig>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -157,6 +159,86 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.UserHistories)
                 .HasForeignKey(x => x.FunctionId)
                 .IsRequired(false);
+        });
+
+        modelBuilder.Entity<DmIconConfig>(entity =>
+        {
+            entity.ToTable("DM_ICON_CONFIG");
+            entity.HasKey(x => x.IconId);
+            entity.Property(x => x.IconId).HasColumnName("ICON_ID").ValueGeneratedOnAdd();
+            entity.Property(x => x.EnvironmentCode).HasColumnName("ENVIRONMENT_CODE").HasMaxLength(20).IsRequired();
+            entity.Property(x => x.GroupCode).HasColumnName("GROUP_CODE").HasMaxLength(100).IsRequired();
+            entity.Property(x => x.CategoryCode).HasColumnName("CATEGORY_CODE").HasMaxLength(100);
+            entity.Property(x => x.TypeCode).HasColumnName("TYPE_CODE").HasMaxLength(100);
+            entity.Property(x => x.Title).HasColumnName("TITLE").HasMaxLength(255).IsRequired();
+            entity.Property(x => x.Subtitle).HasColumnName("SUBTITLE").HasMaxLength(500);
+            entity.Property(x => x.IconUrl).HasColumnName("ICON_URL").HasMaxLength(1000).IsRequired();
+            entity.Property(x => x.IconSelectedUrl).HasColumnName("ICON_SELECTED_URL").HasMaxLength(1000);
+            entity.Property(x => x.IconDisabledUrl).HasColumnName("ICON_DISABLED_URL").HasMaxLength(1000);
+            entity.Property(x => x.BackgroundColor).HasColumnName("BACKGROUND_COLOR").HasMaxLength(30);
+            entity.Property(x => x.TextColor).HasColumnName("TEXT_COLOR").HasMaxLength(30);
+            entity.Property(x => x.FunctionCode).HasColumnName("FUNCTION_CODE").HasMaxLength(150);
+            entity.Property(x => x.DeepLink).HasColumnName("DEEP_LINK").HasMaxLength(1000);
+            entity.Property(x => x.WebUrl).HasColumnName("WEB_URL").HasMaxLength(1000);
+            entity.Property(x => x.ActionType).HasColumnName("ACTION_TYPE").HasMaxLength(50);
+            entity.Property(x => x.BadgeType).HasColumnName("BADGE_TYPE").HasMaxLength(50);
+            entity.Property(x => x.BadgeText).HasColumnName("BADGE_TEXT").HasMaxLength(100);
+            entity.Property(x => x.BadgeColor).HasColumnName("BADGE_COLOR").HasMaxLength(30);
+            entity.Property(x => x.BadgeBgColor).HasColumnName("BADGE_BG_COLOR").HasMaxLength(30);
+            entity.Property(x => x.BadgeStartTime).HasColumnName("BADGE_START_TIME");
+            entity.Property(x => x.BadgeEndTime).HasColumnName("BADGE_END_TIME");
+            entity.Property(x => x.Priority).HasColumnName("PRIORITY").IsRequired();
+            entity.Property(x => x.GridSpan).HasColumnName("GRID_SPAN").IsRequired();
+            entity.Property(x => x.Status).HasColumnName("STATUS").HasMaxLength(20).IsRequired();
+            entity.Property(x => x.StartTime).HasColumnName("START_TIME");
+            entity.Property(x => x.EndTime).HasColumnName("END_TIME");
+            entity.Property(x => x.AppVersion).HasColumnName("APP_VERSION").HasMaxLength(50);
+            entity.Property(x => x.Platform).HasColumnName("PLATFORM").HasMaxLength(30).IsRequired();
+            entity.Property(x => x.LoginRequired).HasColumnName("LOGIN_REQUIRED")
+                .HasConversion(v => v ? 1 : 0, v => v == 1);
+            entity.Property(x => x.TrackingCode).HasColumnName("TRACKING_CODE").HasMaxLength(100);
+            entity.Property(x => x.CreatedBy).HasColumnName("CREATED_BY").HasMaxLength(100);
+            entity.Property(x => x.CreatedAt).HasColumnName("CREATED_AT").IsRequired();
+            entity.Property(x => x.UpdatedBy).HasColumnName("UPDATED_BY").HasMaxLength(100);
+            entity.Property(x => x.UpdatedAt).HasColumnName("UPDATED_AT");
+        });
+
+        modelBuilder.Entity<DmBannerConfig>(entity =>
+        {
+            entity.ToTable("DM_BANNER_CONFIG");
+            entity.HasKey(x => x.BannerId);
+            entity.Property(x => x.BannerId).HasColumnName("BANNER_ID").ValueGeneratedOnAdd();
+            entity.Property(x => x.EnvironmentCode).HasColumnName("ENVIRONMENT_CODE").HasMaxLength(20).IsRequired();
+            entity.Property(x => x.GroupCode).HasColumnName("GROUP_CODE").HasMaxLength(100).IsRequired();
+            entity.Property(x => x.CategoryCode).HasColumnName("CATEGORY_CODE").HasMaxLength(100);
+            entity.Property(x => x.TypeCode).HasColumnName("TYPE_CODE").HasMaxLength(100);
+            entity.Property(x => x.Title).HasColumnName("TITLE").HasMaxLength(255);
+            entity.Property(x => x.Body).HasColumnName("BODY").HasMaxLength(1000);
+            entity.Property(x => x.ImageUrl).HasColumnName("IMAGE_URL").HasMaxLength(1000);
+            entity.Property(x => x.ButtonText).HasColumnName("BUTTON_TEXT").HasMaxLength(100);
+            entity.Property(x => x.ActionType).HasColumnName("ACTION_TYPE").HasMaxLength(50);
+            entity.Property(x => x.FunctionCode).HasColumnName("FUNCTION_CODE").HasMaxLength(150);
+            entity.Property(x => x.DeepLink).HasColumnName("DEEP_LINK").HasMaxLength(1000);
+            entity.Property(x => x.WebUrl).HasColumnName("WEB_URL").HasMaxLength(1000);
+            entity.Property(x => x.MobileFunctionCodes).HasColumnName("MOBILE_FUNCTION_CODES").HasColumnType("CLOB");
+            entity.Property(x => x.AppVersion).HasColumnName("APP_VERSION").HasMaxLength(50);
+            entity.Property(x => x.Platform).HasColumnName("PLATFORM").HasMaxLength(30).IsRequired();
+            entity.Property(x => x.LoginRequired).HasColumnName("LOGIN_REQUIRED")
+                .HasConversion(v => v ? 1 : 0, v => v == 1);
+            entity.Property(x => x.AspectRatioCode).HasColumnName("ASPECT_RATIO_CODE").HasMaxLength(20);
+            entity.Property(x => x.AspectRatioValue).HasColumnName("ASPECT_RATIO_VALUE").HasColumnType("NUMBER(10,4)");
+            entity.Property(x => x.ImageWidthPx).HasColumnName("IMAGE_WIDTH_PX");
+            entity.Property(x => x.ImageHeightPx).HasColumnName("IMAGE_HEIGHT_PX");
+            entity.Property(x => x.RenderMode).HasColumnName("RENDER_MODE").HasMaxLength(50);
+            entity.Property(x => x.Priority).HasColumnName("PRIORITY").IsRequired();
+            entity.Property(x => x.Status).HasColumnName("STATUS").HasMaxLength(20).IsRequired();
+            entity.Property(x => x.StartTime).HasColumnName("START_TIME");
+            entity.Property(x => x.EndTime).HasColumnName("END_TIME");
+            entity.Property(x => x.TrackingCode).HasColumnName("TRACKING_CODE").HasMaxLength(100);
+            entity.Property(x => x.CreatedBy).HasColumnName("CREATED_BY").HasMaxLength(100);
+            entity.Property(x => x.CreatedAt).HasColumnName("CREATED_AT").IsRequired();
+            entity.Property(x => x.UpdatedBy).HasColumnName("UPDATED_BY").HasMaxLength(100);
+            entity.Property(x => x.UpdatedAt).HasColumnName("UPDATED_AT");
         });
     }
 }

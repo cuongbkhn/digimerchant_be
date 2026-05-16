@@ -166,6 +166,111 @@ public static class ApiErrorCodes
         HttpStatusCode = StatusCodes.Status500InternalServerError
     };
 
+    public static readonly ApiErrorDefinition EnvironmentRequired = new()
+    {
+        Code = "23",
+        Description = "ENVIRONMENT_CODE là bắt buộc (UAT, PILOT, PROD)",
+        HttpStatusCode = StatusCodes.Status400BadRequest
+    };
+
+    public static readonly ApiErrorDefinition EnvironmentInvalid = new()
+    {
+        Code = "24",
+        Description = "ENVIRONMENT_CODE không hợp lệ. Chỉ chấp nhận UAT, PILOT, PROD",
+        HttpStatusCode = StatusCodes.Status400BadRequest
+    };
+
+    public static readonly ApiErrorDefinition EnvironmentChangeNotAllowed = new()
+    {
+        Code = "25",
+        Description = "Không được thay đổi môi trường của cấu hình đã tạo",
+        HttpStatusCode = StatusCodes.Status400BadRequest
+    };
+
+    public static readonly ApiErrorDefinition EnvironmentMismatch = new()
+    {
+        Code = "26",
+        Description = "Môi trường không khớp với cấu hình banner",
+        HttpStatusCode = StatusCodes.Status400BadRequest
+    };
+
+    public static readonly ApiErrorDefinition InvalidAppClient = new()
+    {
+        Code = "27",
+        Description = "Invalid app client",
+        HttpStatusCode = StatusCodes.Status401Unauthorized
+    };
+
+    public static readonly ApiErrorDefinition EnvironmentAccessDenied = new()
+    {
+        Code = "28",
+        Description = "Bạn không có quyền thao tác trên môi trường này",
+        HttpStatusCode = StatusCodes.Status403Forbidden
+    };
+
+    public static readonly ApiErrorDefinition AppClientPlatformMismatch = new()
+    {
+        Code = "29",
+        Description = "Platform không khớp với app client",
+        HttpStatusCode = StatusCodes.Status400BadRequest
+    };
+
+    public static readonly ApiErrorDefinition IconNotFound = new()
+    {
+        Code = "30",
+        Description = "Không tìm thấy icon",
+        HttpStatusCode = StatusCodes.Status404NotFound
+    };
+
+    public static readonly ApiErrorDefinition IconInvalid = new()
+    {
+        Code = "31",
+        Description = "Dữ liệu icon không hợp lệ",
+        HttpStatusCode = StatusCodes.Status400BadRequest
+    };
+
+    public static readonly ApiErrorDefinition IconEventInvalid = new()
+    {
+        Code = "32",
+        Description = "Dữ liệu sự kiện icon không hợp lệ",
+        HttpStatusCode = StatusCodes.Status400BadRequest
+    };
+
+    public static readonly ApiErrorDefinition IconCategoryNotFound = new()
+    {
+        Code = "33",
+        Description = "Không tìm thấy category icon",
+        HttpStatusCode = StatusCodes.Status404NotFound
+    };
+
+    public static readonly ApiErrorDefinition IconCategoryInvalid = new()
+    {
+        Code = "34",
+        Description = "Dữ liệu category icon không hợp lệ",
+        HttpStatusCode = StatusCodes.Status400BadRequest
+    };
+
+    public static readonly ApiErrorDefinition BannerNotFound = new()
+    {
+        Code = "20",
+        Description = "Không tìm thấy banner",
+        HttpStatusCode = StatusCodes.Status404NotFound
+    };
+
+    public static readonly ApiErrorDefinition BannerInvalid = new()
+    {
+        Code = "21",
+        Description = "Dữ liệu banner không hợp lệ",
+        HttpStatusCode = StatusCodes.Status400BadRequest
+    };
+
+    public static readonly ApiErrorDefinition BannerEventInvalid = new()
+    {
+        Code = "22",
+        Description = "Dữ liệu sự kiện banner không hợp lệ",
+        HttpStatusCode = StatusCodes.Status400BadRequest
+    };
+
     public static readonly ApiErrorDefinition SystemError = new()
     {
         Code = "99",

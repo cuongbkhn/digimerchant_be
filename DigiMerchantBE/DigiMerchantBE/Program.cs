@@ -28,6 +28,9 @@ builder.Services.Configure<ApiLoggingOptions>(builder.Configuration.GetSection("
 builder.Services.Configure<RefreshTokenCookieOptions>(builder.Configuration.GetSection("RefreshTokenCookie"));
 builder.Services.Configure<CryptoOptions>(builder.Configuration.GetSection("Crypto"));
 builder.Services.Configure<RuntimeOptions>(builder.Configuration.GetSection("Runtime"));
+builder.Services.Configure<MobileConfigOptions>(builder.Configuration.GetSection("MobileConfig"));
+builder.Services.Configure<ContentCatalogOptions>(builder.Configuration.GetSection("ContentCatalog"));
+builder.Services.AddSingleton<IContentCatalog, ContentCatalog>();
 var oracleConnectionString = builder.Configuration.GetConnectionString("OracleDb")
     ?? throw new InvalidOperationException("Missing ConnectionStrings:OracleDb.");
 
@@ -75,6 +78,10 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IBannerService, BannerService>();
+builder.Services.AddScoped<IIconService, IconService>();
+builder.Services.AddScoped<IMobileConfigService, MobileConfigService>();
+builder.Services.AddScoped<IAppEnvironmentResolver, AppEnvironmentResolver>();
 builder.Services.AddScoped<IUserHistoryService, UserHistoryService>();
 builder.Services.AddScoped<ICryptoEnvelopeService, CryptoEnvelopeService>();
 builder.Services.AddHostedService<LogCleanupHostedService>();
