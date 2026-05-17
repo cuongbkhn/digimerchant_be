@@ -18,6 +18,8 @@ using Serilog.Events;
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("api-logging-rules.json", optional: true, reloadOnChange: true);
 
+ConfigureServerUrls(builder);
+
 var jwtSection = builder.Configuration.GetSection("Jwt");
 builder.Services.Configure<JwtOptions>(jwtSection);
 var jwtOptions = jwtSection.Get<JwtOptions>() ?? throw new InvalidOperationException("Missing Jwt configuration.");
@@ -163,3 +165,24 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static void ConfigureServerUrls(WebApplicationBuilder builder)
+{
+    if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
+    {
+        return;
+    }
+
+    var server = builder.Configuration.GetSection("Server").Get<ServerOptions>() ?? new ServerOptions();
+    if (server.Port <= 0)
+    {
+        return;
+    }
+
+    var host = string.IsNullOrWhiteSpace(server.Host) ? "0.0.0.0" : server.Host.Trim();
+    var urls = server.UseHttps
+        ? $"https://{host}:{server.HttpsPort};http://{host}:{server.Port}"
+        : $"http://{host}:{server.Port}";
+
+    builder.WebHost.UseUrls(urls);
+}

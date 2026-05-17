@@ -1,5 +1,9 @@
 # DigiMerchant BackOffice API
 
+**Hướng dẫn tích hợp Web BO (mã hóa, API, request/response):** [docs/BACKOFFICE_WEB_INTEGRATION.md](docs/BACKOFFICE_WEB_INTEGRATION.md)
+
+**Port khi chạy:** `appsettings.json` → `Server.Port` (mặc định `5141`). Host `Server.Host` (`0.0.0.0` = listen mọi interface). Có thể ghi đè bằng biến môi trường `ASPNETCORE_URLS`.
+
 Base path: `/api` (trừ khi ghi chú khác).
 
 **Auth:** Các endpoint không ghi `Public` cần JWT Bearer. Backoffice banner/icon dùng body mã hóa (crypto envelope) khi client bật mã hóa.
