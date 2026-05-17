@@ -85,6 +85,7 @@ builder.Services.AddScoped<IIconService, IconService>();
 builder.Services.AddScoped<IMobileConfigService, MobileConfigService>();
 builder.Services.AddScoped<IAppEnvironmentResolver, AppEnvironmentResolver>();
 builder.Services.AddScoped<IUserHistoryService, UserHistoryService>();
+builder.Services.AddScoped<IUserHistoryQueryService, UserHistoryQueryService>();
 builder.Services.AddScoped<ICryptoEnvelopeService, CryptoEnvelopeService>();
 builder.Services.AddHostedService<LogCleanupHostedService>();
 builder.Services.AddScoped<IPasswordHasher<DmUser>, PasswordHasher<DmUser>>();
@@ -113,7 +114,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AngularDev", policy =>
     {
-        policy.WithOrigins("http://localhost:4200")
+        policy.WithOrigins("http://localhost:4200", "http://localhost:4201")
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();

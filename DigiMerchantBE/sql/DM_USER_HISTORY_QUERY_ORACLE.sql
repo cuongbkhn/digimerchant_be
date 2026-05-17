@@ -1,0 +1,97 @@
+-- ============================================================
+-- Paging lịch sử user (tùy chọn — hiện API dùng EF Core).
+-- Chạy nếu muốn gọi thủ tục từ app khi dữ liệu rất lớn.
+-- ============================================================
+
+CREATE OR REPLACE PACKAGE PKG_DMBO_USER_HISTORY AS
+    PROCEDURE GET_HISTORIES_PAGED (
+        P_ACTOR_USER_ID    IN  NUMBER,
+        P_ACTOR_ROLE_LEVEL IN  NUMBER,
+        P_IS_SUPER_ADMIN   IN  NUMBER,  -- 1 = yes, 0 = no
+        P_TEAM_SCOPE       IN  NUMBER,  -- 1 = team, 0 = mine only
+        P_TARGET_USER_ID   IN  NUMBER,
+        P_FROM_DATE        IN  TIMESTAMP,
+        P_TO_DATE          IN  TIMESTAMP,
+        P_ACTION_TYPE      IN  VARCHAR2,
+        P_EDIT_TABLE       IN  VARCHAR2,
+        P_USER_NAME        IN  VARCHAR2,
+        P_PAGE_INDEX       IN  NUMBER,
+        P_PAGE_SIZE        IN  NUMBER,
+        P_TOTAL_COUNT      OUT NUMBER,
+        P_RESULT           OUT SYS_REFCURSOR
+    );
+END PKG_DMBO_USER_HISTORY;
+/
+
+CREATE OR REPLACE PACKAGE BODY PKG_DMBO_USER_HISTORY AS
+
+    PROCEDURE GET_HISTORIES_PAGED (
+        P_ACTOR_USER_ID    IN  NUMBER,
+        P_ACTOR_ROLE_LEVEL IN  NUMBER,
+        P_IS_SUPER_ADMIN   IN  NUMBER,
+        P_TEAM_SCOPE       IN  NUMBER,
+        P_TARGET_USER_ID   IN  NUMBER,
+        P_FROM_DATE        IN  TIMESTAMP,
+        P_TO_DATE          IN  TIMESTAMP,
+        P_ACTION_TYPE      IN  VARCHAR2,
+        P_EDIT_TABLE       IN  VARCHAR2,
+        P_USER_NAME        IN  VARCHAR2,
+        P_PAGE_INDEX       IN  NUMBER,
+        P_PAGE_SIZE        IN  NUMBER,
+        P_TOTAL_COUNT      OUT NUMBER,
+        P_RESULT           OUT SYS_REFCURSOR
+    ) IS
+        V_OFFSET NUMBER := GREATEST(0, (NVL(P_PAGE_INDEX, 1) - 1) * NVL(P_PAGE_SIZE, 20));
+        V_LIMIT  NUMBER := LEAST(GREATEST(NVL(P_PAGE_SIZE, 20), 1), 100);
+    BEGIN
+        SELECT COUNT(*)
+        INTO P_TOTAL_COUNT
+        FROM DMBO_USER_HISTORIES H
+        LEFT JOIN DMBO_USER U ON U.USER_ID = H.USER_ID
+        LEFT JOIN DMBO_ROLE R ON R.ROLE_ID = U.ROLE_ID
+        WHERE (P_FROM_DATE IS NULL OR H.ACTION_DATE >= P_FROM_DATE)
+          AND (P_TO_DATE IS NULL OR H.ACTION_DATE <= P_TO_DATE)
+          AND (P_ACTION_TYPE IS NULL OR UPPER(H.ACTION_TYPE) = UPPER(P_ACTION_TYPE))
+          AND (P_EDIT_TABLE IS NULL OR UPPER(H.EDIT_TABLE) = UPPER(P_EDIT_TABLE))
+          AND (P_USER_NAME IS NULL OR UPPER(NVL(H.USER_NAME, ' ')) LIKE '%' || UPPER(P_USER_NAME) || '%'
+               OR UPPER(NVL(U.FULL_NAME, ' ')) LIKE '%' || UPPER(P_USER_NAME) || '%')
+          AND (P_TARGET_USER_ID IS NULL OR H.USER_ID = P_TARGET_USER_ID)
+          AND (
+                (P_TEAM_SCOPE = 0 AND H.USER_ID = P_ACTOR_USER_ID)
+             OR (P_TEAM_SCOPE = 1 AND P_IS_SUPER_ADMIN = 1)
+             OR (P_TEAM_SCOPE = 1 AND P_IS_SUPER_ADMIN = 0 AND H.USER_ID IS NOT NULL
+                 AND U.STATUS = 1 AND R.ROLE_LEVEL IS NOT NULL
+                 AND (H.USER_ID = P_ACTOR_USER_ID OR R.ROLE_LEVEL > P_ACTOR_ROLE_LEVEL))
+              );
+
+        OPEN P_RESULT FOR
+            SELECT H.HISTORY_ID, H.USER_ID, H.USER_NAME,
+                   U.FULL_NAME AS ACTOR_FULL_NAME,
+                   R.ROLE_CODE AS ACTOR_ROLE_CODE,
+                   R.ROLE_NAME AS ACTOR_ROLE_NAME,
+                   H.FUNCTION_ID, H.FUNC_NAME, H.ACTION_TYPE, H.ACTION_DESC,
+                   H.ACTION_DATE, H.EDIT_TABLE, H.OLD_VALUE, H.NEW_VALUE,
+                   H.IP_ADDRESS, H.USER_AGENT
+            FROM DMBO_USER_HISTORIES H
+            LEFT JOIN DMBO_USER U ON U.USER_ID = H.USER_ID
+            LEFT JOIN DMBO_ROLE R ON R.ROLE_ID = U.ROLE_ID
+            WHERE (P_FROM_DATE IS NULL OR H.ACTION_DATE >= P_FROM_DATE)
+              AND (P_TO_DATE IS NULL OR H.ACTION_DATE <= P_TO_DATE)
+              AND (P_ACTION_TYPE IS NULL OR UPPER(H.ACTION_TYPE) = UPPER(P_ACTION_TYPE))
+              AND (P_EDIT_TABLE IS NULL OR UPPER(H.EDIT_TABLE) = UPPER(P_EDIT_TABLE))
+              AND (P_USER_NAME IS NULL OR UPPER(NVL(H.USER_NAME, ' ')) LIKE '%' || UPPER(P_USER_NAME) || '%'
+                   OR UPPER(NVL(U.FULL_NAME, ' ')) LIKE '%' || UPPER(P_USER_NAME) || '%')
+              AND (P_TARGET_USER_ID IS NULL OR H.USER_ID = P_TARGET_USER_ID)
+              AND (
+                    (P_TEAM_SCOPE = 0 AND H.USER_ID = P_ACTOR_USER_ID)
+                 OR (P_TEAM_SCOPE = 1 AND P_IS_SUPER_ADMIN = 1)
+                 OR (P_TEAM_SCOPE = 1 AND P_IS_SUPER_ADMIN = 0 AND H.USER_ID IS NOT NULL
+                     AND U.STATUS = 1 AND R.ROLE_LEVEL IS NOT NULL
+                     AND (H.USER_ID = P_ACTOR_USER_ID OR R.ROLE_LEVEL > P_ACTOR_ROLE_LEVEL))
+                  )
+            ORDER BY H.ACTION_DATE DESC, H.HISTORY_ID DESC
+            OFFSET V_OFFSET ROWS FETCH NEXT V_LIMIT ROWS ONLY;
+    END GET_HISTORIES_PAGED;
+
+END PKG_DMBO_USER_HISTORY;
+/

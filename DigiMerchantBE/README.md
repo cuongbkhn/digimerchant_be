@@ -2,7 +2,7 @@
 
 **Hướng dẫn tích hợp Web BO (mã hóa, API, request/response):** [docs/BACKOFFICE_WEB_INTEGRATION.md](docs/BACKOFFICE_WEB_INTEGRATION.md)
 
-**Port khi chạy:** `appsettings.json` → `Server.Port` (mặc định `5141`). Host `Server.Host` (`0.0.0.0` = listen mọi interface). Có thể ghi đè bằng biến môi trường `ASPNETCORE_URLS`.
+**Port khi chạy:** `appsettings.json` → `Server` (mặc định `http://localhost:5141`). Áp dụng khi chạy profile **http** / **https** (Kestrel) hoặc `dotnet run`. **IIS Express** dùng port trong `Properties/launchSettings.json` → `iisSettings` (đã đồng bộ `5141`); trên Visual Studio nên chọn profile **http** thay vì IIS Express.
 
 Base path: `/api` (trừ khi ghi chú khác).
 
@@ -31,6 +31,21 @@ Base path: `/api` (trừ khi ghi chú khác).
 | Method | Path | Mô tả |
 |--------|------|--------|
 | POST | `/api/users/register` | Tài khoản backoffice vừa tạo (userId, userName, …). |
+
+---
+
+## User histories — `/api/user-histories`
+
+| Method | Path | Mô tả |
+|--------|------|--------|
+| GET | `/api/user-histories/mine` | Lịch sử của user đang đăng nhập (phân trang). |
+| GET | `/api/user-histories/team` | SUPER_ADMIN: tất cả; khác: bản thân + user `ROLE_LEVEL` thấp hơn. |
+
+Query: `pageIndex`, `pageSize` (max 100), `fromDate`, `toDate`, `actionType`, `editTable`, `userName`, `targetUserId`.
+
+Response `data`: `items[]`, `pageIndex` (trang hiện tại), `pageSize`, `totalCount`, `totalPages`.
+
+Quyền: `USER_HISTORY_VIEW`.
 
 ---
 

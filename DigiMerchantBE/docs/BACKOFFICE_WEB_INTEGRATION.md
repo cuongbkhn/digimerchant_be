@@ -310,8 +310,20 @@ Sau login, `user.functions[]` có `functionCode`. Ẩn/hiện menu và nút theo
 | `ICON_CHANGE_STATUS` | Đổi trạng thái icon |
 | `ICON_FUNCTION_CODE_VIEW` | (tùy chọn) xem function codes |
 | `OTT_SEND_SINGLE` | Gửi OTT đơn |
+| `USER_HISTORY_VIEW` | Xem lịch sử thao tác (cá nhân + cấp dưới) |
 
-`functionDisplay === 1` → hiển thị trên menu (nếu build menu từ API).
+`functionDisplay === 1` → hiển thị trên menu (nếu build menu từ API). Menu gợi ý lịch sử: `functionUrl` = `/logs/user-histories`.
+
+### 4.1. Phân cấp role (lịch sử & quản lý user)
+
+Thứ bậc lấy từ `DMBO_ROLE.ROLE_LEVEL` — **số càng nhỏ = quyền càng cao**.
+
+| ROLE_CODE | ROLE_LEVEL |
+|-----------|------------|
+| SUPER_ADMIN | 0 |
+| ADMIN | 1 |
+| OPERATOR | 2 |
+| VIEWER | 3 |
 
 ---
 
@@ -741,6 +753,199 @@ Dùng cho multi-select `mobileFunctionCodes` khi cấu hình banner.
 
 ---
 
+### 5.7. Lịch sử thao tác user (`DMBO_USER_HISTORIES`)
+
+Ghi log các thao tác backoffice: đăng nhập, tạo/sửa banner, icon, user, … Mỗi bản ghi có `actionType`, mô tả, bảng sửa (`editTable`), `oldValue` / `newValue` (JSON/CLOB), IP, user-agent.
+
+**Không mã hóa body** — chỉ GET + query string.  
+**Quyền:** `USER_HISTORY_VIEW` (Bearer JWT).
+
+#### Hai API — chọn theo màn hình
+
+| API | Khi nào dùng |
+|-----|----------------|
+| `GET /api/user-histories/mine` | Tab / màn **“Lịch sử của tôi”** — chỉ user đang đăng nhập |
+| `GET /api/user-histories/team` | Tab / màn **“Lịch sử hệ thống / cấp dưới”** — theo phân cấp role |
+
+#### Phạm vi dữ liệu (`team`)
+
+| User đăng nhập | Records trả về |
+|----------------|----------------|
+| **SUPER_ADMIN** | Toàn bộ lịch sử mọi user |
+| **ADMIN** | Lịch sử của **mình** + user có `ROLE_LEVEL` **>** 1 (OPERATOR, VIEWER, …) |
+| **OPERATOR / VIEWER** | Lịch sử của **mình** + user có `ROLE_LEVEL` **>** level của mình |
+
+Không trả về lịch sử thuộc user **SUPER_ADMIN** khác (trừ khi caller là SUPER_ADMIN).  
+Không xem được user cùng cấp hoặc cấp cao hơn.
+
+#### Query chung (cả `mine` và `team`)
+
+| Tham số | Kiểu | Bắt buộc | Mô tả |
+|---------|------|----------|--------|
+| `pageIndex` | int | Không (default `1`) | **Trang hiện tại** (1-based) |
+| `pageSize` | int | Không (default `20`) | Số dòng/trang, tối đa **100** |
+| `fromDate` | datetime (ISO) | Không | `actionDate >= fromDate` |
+| `toDate` | datetime (ISO) | Không | `actionDate <= toDate` |
+| `actionType` | string | Không | Lọc chính xác, ví dụ `LOGIN`, `BANNER_CREATE`, `ICON_UPDATE` |
+| `editTable` | string | Không | Lọc bảng, ví dụ `DM_BANNER_CONFIG`, `DM_ICON_CONFIG`, `DMBO_USER` |
+| `userName` | string | Không | Tìm trong `userName` hoặc `fullName` (contains, không phân biệt hoa thường) |
+| `targetUserId` | long | Không | Chỉ lịch sử của 1 `userId`; phải nằm trong phạm vi được phép (team/mine) |
+
+**Ví dụ URL:**
+
+```
+GET /api/user-histories/team?pageIndex=1&pageSize=20&fromDate=2026-05-01T00:00:00Z&actionType=BANNER_CREATE
+GET /api/user-histories/mine?pageIndex=2&pageSize=50
+GET /api/user-histories/team?targetUserId=5&pageIndex=1&pageSize=20
+```
+
+#### Response 200 (dạng B — có `data`)
+
+```json
+{
+  "errorCode": "00",
+  "errorDescription": "Thành công",
+  "data": {
+    "items": [
+      {
+        "historyId": 1024,
+        "userId": 2,
+        "userName": "operator01",
+        "actorFullName": "Operator One",
+        "actorRoleCode": "OPERATOR",
+        "actorRoleName": "Operator",
+        "functionId": null,
+        "funcName": "BANNER_MANAGEMENT",
+        "actionType": "BANNER_CREATE",
+        "actionDesc": "Tạo banner 15 cho môi trường UAT",
+        "actionDate": "2026-05-16T10:30:00Z",
+        "editTable": "DM_BANNER_CONFIG",
+        "oldValue": null,
+        "newValue": "{\"bannerId\":15,\"environmentCode\":\"UAT\",\"status\":\"DRAFT\"}",
+        "ipAddress": "192.168.1.10",
+        "userAgent": "Mozilla/5.0 ..."
+      }
+    ],
+    "pageIndex": 1,
+    "pageSize": 20,
+    "totalCount": 156,
+    "totalPages": 8
+  }
+}
+```
+
+| Field trong `data` | Ý nghĩa UI |
+|--------------------|------------|
+| `pageIndex` | Trang hiện tại (dùng hiển thị “Trang 1 / 8”) |
+| `pageSize` | Kích thước trang đã request |
+| `totalCount` | Tổng số bản ghi khớp filter |
+| `totalPages` | Tổng số trang = `ceil(totalCount / pageSize)` |
+| `items` | Danh sách dòng lịch sử |
+
+**Gợi ý phân trang UI:** nút Trước/Sau đổi `pageIndex`; khi đổi filter thì reset `pageIndex = 1`.
+
+#### Ý nghĩa các field trong `items[]`
+
+| Field | Mô tả |
+|-------|--------|
+| `historyId` | ID bản ghi |
+| `userId` / `userName` | User thực hiện thao tác |
+| `actorFullName` | Họ tên (từ `DMBO_USER`) |
+| `actorRoleCode` / `actorRoleName` | Role lúc thao tác |
+| `funcName` | Module/tính năng, ví dụ `BANNER_MANAGEMENT`, `ICON_MANAGEMENT` |
+| `actionType` | Mã thao tác: `LOGIN`, `LOGOUT`, `BANNER_CREATE`, `BANNER_UPDATE`, `ICON_CHANGE_STATUS`, … |
+| `actionDesc` | Mô tả tiếng Việt (hiển thị cột “Nội dung”) |
+| `actionDate` | Thời điểm (UTC, format ISO) |
+| `editTable` | Bảng DB bị tác động |
+| `oldValue` / `newValue` | JSON string trước/sau (có thể dài — modal chi tiết hoặc collapse) |
+| `ipAddress` / `userAgent` | Thiết bị / trình duyệt |
+
+#### Lỗi thường gặp
+
+| errorCode | HTTP | Khi nào |
+|-----------|------|---------|
+| `17` | 403 | `targetUserId` không thuộc phạm vi xem (`HistoryAccessDenied`) |
+| `14` | 403 | Không xác định role actor |
+| — | 401 | Thiếu / hết hạn token |
+| — | 403 | Thiếu quyền `USER_HISTORY_VIEW` |
+
+#### `GET /api/user-histories/mine` — Bearer, `USER_HISTORY_VIEW`
+
+Chỉ lịch sử có `userId` = user đang đăng nhập. Query/response như trên.
+
+**UI gợi ý:** màn “Lịch sử cá nhân” — filter đơn giản (ngày, loại thao tác), không cần chọn user.
+
+#### `GET /api/user-histories/team` — Bearer, `USER_HISTORY_VIEW`
+
+Lịch sử theo phân cấp (bảng trên). Query/response như trên.
+
+**UI gợi ý:**
+
+- Bảng có cột: thời gian, user, role, loại thao tác, mô tả, bảng, IP.
+- Filter: khoảng ngày, `actionType`, `editTable`, tìm `userName`.
+- Dropdown **chọn user** (optional): gửi `targetUserId` — chỉ list user trong phạm vi (ADMIN: không list SUPER_ADMIN).
+- SUPER_ADMIN: có thể xem toàn bộ; ADMIN: tab team = mình + cấp dưới.
+- Phân trang: binding `pageIndex`, hiển thị `totalPages` / `totalCount`.
+- Click dòng → modal chi tiết parse `oldValue` / `newValue` JSON (pretty-print).
+
+#### Một số `actionType` hay gặp (để filter dropdown)
+
+`LOGIN`, `LOGOUT`, `LOGIN_FAILED`, `BANNER_CREATE`, `BANNER_UPDATE`, `BANNER_CHANGE_STATUS`, `BANNER_DELETE`, `ICON_CREATE`, `ICON_UPDATE`, `ICON_CHANGE_STATUS`, `ICON_DELETE` — danh sách có thể mở rộng theo BE.
+
+#### TypeScript interface (gợi ý)
+
+```typescript
+export interface UserHistoryQuery {
+  pageIndex?: number;
+  pageSize?: number;
+  fromDate?: string;
+  toDate?: string;
+  actionType?: string;
+  editTable?: string;
+  userName?: string;
+  targetUserId?: number;
+}
+
+export interface UserHistoryItem {
+  historyId: number;
+  userId?: number;
+  userName?: string;
+  actorFullName?: string;
+  actorRoleCode?: string;
+  actorRoleName?: string;
+  functionId?: number;
+  funcName?: string;
+  actionType: string;
+  actionDesc?: string;
+  actionDate: string;
+  editTable?: string;
+  oldValue?: string;
+  newValue?: string;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+export interface PagedUserHistory {
+  items: UserHistoryItem[];
+  pageIndex: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+}
+```
+
+```typescript
+// Ví dụ gọi API
+getTeamHistories(query: UserHistoryQuery) {
+  return this.http.get<ApiResponse<PagedUserHistory>>(
+    `${this.baseUrl}/api/user-histories/team`,
+    { params: this.toParams(query), withCredentials: true }
+  );
+}
+```
+
+---
+
 ## 6. Gợi ý cấu trúc module Angular (cho Cursor BO)
 
 ```
@@ -755,6 +960,7 @@ src/app/
     banners/        # list, form, environment selector
     icons/
     users/
+    user-histories/ # mine + team tabs, table + pagination + detail modal
   shared/
     models/         # TypeScript interfaces mirror DTO
 ```
@@ -766,6 +972,7 @@ src/app/
 3. Trước POST/PUT banner|icon: nếu `crypto.enabled` → `buildEncryptedBody`.
 4. Màn hình banner: load `function-codes` khi mở form; validate dropdown từ `ContentCatalog` (config FE).
 5. Global `environmentCode` store (service) → mọi API banner/icon truyền cùng môi trường.
+6. Màn lịch sử: tab **Của tôi** → `GET .../mine`; tab **Hệ thống** (hoặc “Cấp dưới”) → `GET .../team`; ẩn tab team nếu không có `USER_HISTORY_VIEW`.
 
 ---
 
@@ -779,6 +986,7 @@ src/app/
 - [ ] Parse JWT lấy `sub`/`nameid` và `jti` cho AAD.
 - [ ] Kiểm tra `errorCode` trên mọi response.
 - [ ] Ẩn PROD trên UI nếu không phải SUPER_ADMIN.
+- [ ] Lịch sử: phân trang `pageIndex` / `totalPages`; filter đổi trang về 1.
 
 ---
 
@@ -808,6 +1016,8 @@ src/app/
 | PUT | `/api/icons/{id}/status` | Bearer | **Có** |
 | DELETE | `/api/icons/{id}` | Bearer | — |
 | POST | `/api/ott/send-single` | Bearer | **Có** |
+| GET | `/api/user-histories/mine` | Bearer | — |
+| GET | `/api/user-histories/team` | Bearer | — |
 
 API `/api/mobile/config/*` dành cho **app mobile**, không bắt buộc cho BO web.
 

@@ -10,6 +10,7 @@ Chạy theo thứ tự (schema user Oracle đích):
 4. `DM_BANNER_CONFIG_ORACLE.sql` — bảng `DM_BANNER_CONFIG` + quyền banner
 5. `DM_ICON_CONFIG_ORACLE.sql` — bảng `DM_ICON_CONFIG` + quyền icon
 6. `DM_BANNER_ICON_APP_VERSION_ALTER.sql` — chỉ khi DB cũ còn `MIN_APP_VERSION` / `MAX_APP_VERSION`
+7. `DM_USER_HISTORY_QUERY_ORACLE.sql` — (tùy chọn) package paging lịch sử; API hiện dùng EF
 
 Môi trường `UAT` / `PILOT` / `PROD`: không có bảng riêng — client truyền `environmentCode` trên API.
 

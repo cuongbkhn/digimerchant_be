@@ -247,7 +247,7 @@ public class AuthService : IAuthService
 
         await _roleService.EnsureCanResetPasswordAsync(actorRole, user);
 
-        var rawPassword = GenerateTemporaryPassword(12);
+        var rawPassword = GenerateTemporaryPassword(8);
         user.PasswordHash = _passwordHasher.HashPassword(user, rawPassword);
         user.NumberOfFailedLogins = 0;
         user.LockoutEndAt = null;

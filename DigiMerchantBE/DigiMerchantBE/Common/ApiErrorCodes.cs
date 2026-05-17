@@ -145,6 +145,13 @@ public static class ApiErrorCodes
         HttpStatusCode = StatusCodes.Status403Forbidden
     };
 
+    public static readonly ApiErrorDefinition HistoryAccessDenied = new()
+    {
+        Code = "17",
+        Description = "Không có quyền xem lịch sử của người dùng này",
+        HttpStatusCode = StatusCodes.Status403Forbidden
+    };
+
     public static readonly ApiErrorDefinition LogoutSuccess = new()
     {
         Code = "00",
